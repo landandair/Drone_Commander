@@ -5,9 +5,12 @@ import pygame as pg
 class FakePlane(sprite.Sprite):
     def __init__(self, start_pos):
         super().__init__()
-        self.image = pg.image.load('Assets/Plane.png')
+        self.og_image = pg.image.load('Assets/Plane.png')
+        self.image = self.og_image
         self.rect = self.image.get_rect()
         self.rect.center = start_pos
+
+
 
     def update(self):
         self.do_physics()
