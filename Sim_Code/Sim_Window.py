@@ -32,7 +32,7 @@ class MainWindow:
         self.background.add(back)
 
         self.planes = pg.sprite.Group()
-        plane = FakePlane(self.f_real_xy((.1,.1)))
+        plane = FakePlane((.1,.1), self.f_real_xy)
         self.planes.add(plane)
         # Misc Vars
         self.clock = pg.time.Clock()
