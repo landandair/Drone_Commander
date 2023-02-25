@@ -1,6 +1,7 @@
 """Holds Code that handles the content of the window as well as containing all of the pygame sprite groups needed
 for the sim"""
 from Airplane_Code import FakePlane
+from Airplane_Control import PlaneController
 import pygame as pg
 import Pygame_Tools as Tool
 import sys
@@ -10,6 +11,7 @@ import numpy as np
 class MainWindow:
     def __init__(self, data):
         self.data = data
+        self.waypoints = data
         # Screen Setup
         self.h_w = 9/16  # height to width Ratio
         pg.display.init()
@@ -32,7 +34,8 @@ class MainWindow:
         self.background.add(back)
 
         self.planes = pg.sprite.Group()
-        plane = FakePlane((.1,.1), self.f_real_xy)
+        controller = PlaneController(self.waypoints, (.1, .1, 100))
+        plane = FakePlane((.1,.1), self.f_real_xy, controller)
         self.planes.add(plane)
         # Misc Vars
         self.clock = pg.time.Clock()

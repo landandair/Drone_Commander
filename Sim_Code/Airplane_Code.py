@@ -3,12 +3,13 @@ from pygame import sprite
 import pygame as pg
 import Pygame_Tools as Tools
 import numpy as np
+from Airplane_Control import PlaneController
 
 
 class FakePlane(sprite.Sprite):
     """Simulate Flight Characteristics and control system for autopilot"""
 
-    def __init__(self, start_pos, f_trans, Controller):
+    def __init__(self, start_pos, f_trans, Controller:PlaneController):
         """Inputs:
         - Start_Pos[Home Point in Meters(x,y)]
         - f_trans[Transfer Function f(x,y) Between meter cords and pixel Cords]
@@ -28,6 +29,7 @@ class FakePlane(sprite.Sprite):
         self.fc_ail = lambda angle: .05 * angle  # theta/m/s (needs velocity vector * dt)
         self.f_throttle = lambda throttle: 20 * throttle  # Force(N) (0,1)
         # Physical Params-Plane Ref
+        self.thrust = 0 # N
         self.roll = 0  # radians
         self.pitch = 0  # radians
         self.yaw = 0  # radians
@@ -57,6 +59,11 @@ class FakePlane(sprite.Sprite):
         """Gets control inputs from controller
         - Get Control from player/controller
         - Apply Controls to Plane"""
+        throttle, droll, dpitch, dyaw = self.controller.get_command(self.ref_pos, (self.roll, self.pitch, self.yaw))
+        self.thrust = self.f_throttle(throttle)
+        self.roll += self.fc_ail(droll)
+        self.pitch += self.fc_tail(dpitch)
+        self.yaw += self.fc_tail(dyaw)
 
     def do_physics(self):
         """Handles Physics increments
