@@ -16,18 +16,19 @@ class PlaneController:
         self.home = home_pos
         # Gains
         self.throttle_cruise = .5
-        self.p_throttle = 1
-        self.p_aileron = 1
-        self.p_elevon = 1
-        self.p_tail = 1
+        self.max_climb_aoa = .2 # Rad
+        p_throttle = 1
+        self.p_aileron = .1
+        self.p_elevon = .1
+        self.p_tail = .1
 
         # Heading Error Transfer Functions
         self.tf_h_r = lambda theta: theta * 15/180
         self.tf_h_y = lambda theta: theta
         self.tf_h_p = lambda theta: abs(theta) * 10/180
-        self.tf_h_th = lambda theta: abs(theta) * .3/np.pi
+        self.tf_h_th = lambda theta: abs(theta) * .3/np.pi * p_throttle
         # Pitch Error Transfer Functions
-        self.tf_h_th = lambda theta: theta * .3/np.pi
+        self.tf_p_th = lambda theta: theta * .3/np.pi * p_throttle
 
         self.last_pos = home_pos
         self.d_target = self.target[0:1] - self.home[0:1]
@@ -51,13 +52,23 @@ class PlaneController:
     def get_controller_input(self, pos, angle):
         self.set_target()
         self.d_target = self.target[0:1] - self.home[0:1]
-        heading_error = self.determine_heading_error(pos)  # Angle in Radians
 
-        throttle = 0
-        aileron = 0
-        elevon = 0
-        vert = 0
-        return throttle, aileron, elevon, vert
+        heading_error = self.determine_heading_error(pos)  # Angle in Radians
+        aoa_target = self.determine_pitch_target(pos)
+
+        throttle = self.throttle_cruise + self.tf_h_th(heading_error) + self.tf_p_th(aoa_target)
+        if throttle > 1:
+            throttle = 1
+
+        roll_error = self.tf_h_r(heading_error) - angle[0]
+        roll = roll_error * self.p_aileron
+
+        pitch_error = self.tf_h_p(heading_error) + aoa_target - angle[1]
+        pitch = pitch_error * self.p_elevon
+
+        yaw_error = self.tf_h_y(heading_error) - angle[2]
+        yaw = yaw_error * self.p_tail
+        return throttle, roll, pitch, yaw  # Throttle and Control Surface Commands
 
     def set_target(self):
         if self.mode == 0:
@@ -81,3 +92,11 @@ class PlaneController:
             return -left  # Turn Left(- Angle)
         else:
             return 2*np.pi-left  # Turn Right(+ Angle)
+
+    def determine_pitch_target(self, pos):
+        alt = pos[2]
+        d_alt = self.target[2] - alt
+        t_pitch = d_alt/10 * np.pi/180
+        if abs(t_pitch) > self.max_climb_aoa:
+            t_pitch = t_pitch/abs(t_pitch) * self.max_climb_aoa
+        return t_pitch
