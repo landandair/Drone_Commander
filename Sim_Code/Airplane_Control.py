@@ -51,9 +51,10 @@ class PlaneController:
 
     def get_controller_input(self, pos, angle):
         self.set_target()
-        self.d_target = self.target[0:1] - self.home[0:1]
+        self.d_target = self.target[0:2] - pos[0:2]
+        self.t_theta = np.arctan2(self.d_target[1], self.d_target[0])
 
-        heading_error = self.determine_heading_error(pos)  # Angle in Radians
+        heading_error = self.determine_heading_error(pos, angle)  # Angle in Radians
         aoa_target = self.determine_pitch_target(pos)
 
         throttle = self.throttle_cruise + self.tf_h_th(heading_error) + self.tf_p_th(aoa_target)
@@ -66,7 +67,7 @@ class PlaneController:
         pitch_error = self.tf_h_p(heading_error) + aoa_target - angle[1]
         pitch = pitch_error * self.p_elevon
 
-        yaw_error = self.tf_h_y(heading_error) - angle[2]
+        yaw_error = self.tf_h_y(self.t_theta) - angle[2]
         yaw = yaw_error * self.p_tail
         return throttle, roll, pitch, yaw  # Throttle and Control Surface Commands
 
@@ -76,22 +77,21 @@ class PlaneController:
         elif self.mode == 1:
             self.target = self.home
 
-    def determine_heading_error(self, pos):
+    def determine_heading_error(self, pos, angles):
         """Returns error in heading angle to the target position in radians(+ right, - left)"""
-        d_posxy = pos[0:1] - self.last_pos[0:1]
-        theta = np.arctan2(d_posxy[1], d_posxy[0])  # atan(Y, X)
-        if theta < 0:
-            theta += 2*np.pi
-        t_theta = np.arctan2(self.d_target[1], self.d_target[0])
-        if t_theta < 0:
-            t_theta += 2*np.pi
-        left = t_theta - theta
-        if left < 0:
-            left += 2*np.pi
-        if left < np.pi:
-            return -left  # Turn Left(- Angle)
-        else:
-            return 2*np.pi-left  # Turn Right(+ Angle)
+        # d_posxy = pos[0:2] - self.last_pos[0:2]
+        # if d_posxy[0] == 0 and d_posxy[1] == 0:
+        #     return 0
+        theta = np.arctan2(np.sin(angles[2])*np.cos(angles[1]), np.cos(angles[2])*np.cos(angles[1]))  # atan(Y, X)
+        if self.t_theta < 0:
+            self.t_theta += 2*np.pi
+        anti_t = self.t_theta - np.pi
+        if self.t_theta > theta > anti_t:
+            # Left
+            dtheta = self.t_theta - theta
+        else:  # Right
+            dtheta = self.t_theta-2*np.pi - theta
+        return dtheta
 
     def determine_pitch_target(self, pos):
         alt = pos[2]

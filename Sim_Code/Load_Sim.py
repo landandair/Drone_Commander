@@ -7,4 +7,6 @@ import numpy as np
 
 class SimData:
     def __init__(self):
-        self.waypoints = []
+        self.waypoints = np.array(((.4, .5, 40),
+                                   (.4, 100, 50),
+                                  (50, -300, 50)))

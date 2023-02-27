@@ -11,7 +11,7 @@ import numpy as np
 class MainWindow:
     def __init__(self, data):
         self.data = data
-        self.waypoints = data
+        self.waypoints = data.waypoints
         # Screen Setup
         self.h_w = 9/16  # height to width Ratio
         pg.display.init()
