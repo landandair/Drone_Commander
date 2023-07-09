@@ -9,9 +9,8 @@ import numpy as np
 
 
 class MainWindow:
-    def __init__(self, data):
-        self.data = data
-        self.waypoints = data.waypoints
+    def __init__(self):
+        waypoint = np.array((.5, .5))
         # Screen Setup
         self.h_w = 9/16  # height to width Ratio
         pg.display.init()
@@ -25,8 +24,8 @@ class MainWindow:
 
         self.screen = pg.display.set_mode((0, 0), pg.FULLSCREEN)
         # Turns 0-1 cords into pixel cords
-        self.f_real_xy = lambda xy: (xy[0]*self.w + (self.monitor_size[0]-self.w),
-                                     xy[1]*self.h + (self.monitor_size[1]-self.h))
+        self.f_real_xy = lambda xy: np.array((xy[0]*self.w + (self.monitor_size[0]-self.w),
+                                            xy[1]*self.h + (self.monitor_size[1]-self.h)))
         # Sprite Groups
         self.background = pg.sprite.Group()
         back = Tool.Background(pg.image.load('Assets/Background1.png'), self.w, self.h)
@@ -34,8 +33,8 @@ class MainWindow:
         self.background.add(back)
 
         self.planes = pg.sprite.Group()
-        controller = PlaneController(self.waypoints, (.1, .1, 100))
-        plane = FakePlane((.1,.1), self.f_real_xy, controller)
+        controller = PlaneController(self.f_real_xy(waypoint), self.f_real_xy(np.array((.1, .1))))
+        plane = FakePlane(self.monitor_size, controller)
         self.planes.add(plane)
         # Misc Vars
         self.clock = pg.time.Clock()
@@ -47,13 +46,18 @@ class MainWindow:
         if self.quit:
             return
 
-        if not self.pause:
-            self.planes.update()
+        if not self.pause and self.clock.get_fps():
+            dt = 1/self.clock.get_fps()
+            self.planes.update(dt)
+        else:
+            dt = 0
 
+        self.screen.fill('Black')
         self.background.draw(self.screen)
+        self.draw_lines()
         self.planes.draw(self.screen)
         pg.display.flip()
-        self.clock.tick(60)
+        self.clock.tick(120)
 
     def manage_events(self):
         for event in pg.event.get():
@@ -69,6 +73,13 @@ class MainWindow:
                     sys.exit()
                 if event.key == pg.K_p:
                     self.pause = not self.pause
+
+    def draw_lines(self):
+        line_color = (100, 0, 0)
+        for plane in self.planes:
+            if plane.has_signal:
+                pg.draw.line(self.screen, line_color, plane.controller.target, plane.controller.last_pos, width=4)
+
 
 
 
