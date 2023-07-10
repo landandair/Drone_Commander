@@ -24,12 +24,9 @@ class PlaneController:
     def get_controller_input(self, pos, angle):
         self.d_target = self.target - pos
         self.t_theta = np.arctan2(-self.d_target[1], self.d_target[0])
-        if np.sqrt(sum(self.d_target**2))<100:
-            heading_error=0
-        else:
-            heading_error = self.determine_heading_error(angle)  # Angle in Radians
+        heading_error = self.determine_heading_error(angle)  # Angle in Radians
         ret = heading_error*self.gain
-        lim = 1.5
+        lim = 1
         if abs(ret) > lim:
             ret = lim*ret/abs(ret)
         return ret  # Throttle and Control Surface Commands
@@ -49,11 +46,11 @@ class PlaneController:
             self.t_theta += 2*np.pi
         if theta < 0:
             theta += 2*np.pi
-        anti_t = self.t_theta - np.pi
-        if self.t_theta > theta > anti_t:
-            # Left
-            dtheta = self.t_theta - theta
-        else:  # Right
-            dtheta = self.t_theta-2*np.pi - theta
-        return dtheta
+        dt_theta = self.t_theta - theta
+        if dt_theta<0:
+            dt_theta += 2*np.pi
+
+        if dt_theta > np.pi:
+            dt_theta = -(dt_theta - np.pi)
+        return dt_theta
 

@@ -1,6 +1,6 @@
 """Holds Code that handles the content of the window as well as containing all of the pygame sprite groups needed
 for the sim"""
-from Airplane_Code import FakePlane
+from Airplane_Code import Plane
 from Airplane_Control import PlaneController
 import pygame as pg
 import Pygame_Tools as Tool
@@ -10,12 +10,10 @@ import numpy as np
 
 class MainWindow:
     def __init__(self):
-        waypoint = np.array((.5, .5))
+        self.zoom = .5
         # Screen Setup
         self.h_w = 9/16  # height to width Ratio
-        pg.display.init()
         self.monitor_size = np.array((pg.display.Info().current_w, pg.display.Info().current_h))
-
         if self.monitor_size[0] * self.h_w > self.monitor_size[1]:
             self.w = self.monitor_size[1]/self.h_w
         else:
@@ -23,6 +21,7 @@ class MainWindow:
         self.h = self.w * self.h_w
 
         self.screen = pg.display.set_mode((0, 0), pg.FULLSCREEN)
+
         # Turns 0-1 cords into pixel cords
         self.f_real_xy = lambda xy: np.array((xy[0]*self.w + (self.monitor_size[0]-self.w),
                                             xy[1]*self.h + (self.monitor_size[1]-self.h)))
@@ -32,10 +31,18 @@ class MainWindow:
         back.rect.center = self.monitor_size/2
         self.background.add(back)
 
+        # Objects
+        self.obj_dict = {}
+        self.obj_array = np.array(())
+        self.plane_list = []
         self.planes = pg.sprite.Group()
-        controller = PlaneController(self.f_real_xy(waypoint), self.f_real_xy(np.array((.1, .1))))
-        plane = FakePlane(self.monitor_size, controller)
-        self.planes.add(plane)
+        self.fort_beac = pg.sprite.Group()
+        self.enemies = pg.sprite.Group()
+        self.bullets = pg.sprite.Group()
+        self.bombs = pg.sprite.Group()
+        self.explosions = pg.sprite.Group()
+        # Load values for first level
+        self.load_from_file('file')
         # Misc Vars
         self.clock = pg.time.Clock()
         self.pause = False
@@ -80,6 +87,42 @@ class MainWindow:
             if plane.has_signal:
                 pg.draw.line(self.screen, line_color, plane.controller.target, plane.controller.last_pos, width=4)
 
+    def load_from_file(self, file_name):
+        # [type, hop, x, y, closest x, closest y]
+        self.obj_dict = {}
+        self.plane_list = []
+        self.planes = pg.sprite.Group()
+        self.fort_beac = pg.sprite.Group()
+        self.enemies = pg.sprite.Group()
+        self.bullets = pg.sprite.Group()
+        self.bombs = pg.sprite.Group()
+        self.explosions = pg.sprite.Group()
+        self.obj_array = np.array(((1, 90, 100, 100, 500, 500),
+                                   (1, 90, 200, 100, 500, 500),
+                                   (1, 90, 300, 100, 500, 500),
+                                   (1, 90, 400, 100, 500, 500)),
+                                  dtype=float)
+        for i, row in enumerate(self.obj_array):
+            if row[0] == 1:
+                controller = PlaneController(row[4:], row[2:4])
+                obj = Plane(self.monitor_size, controller, zoom=self.zoom)
+                self.planes.add(obj)
+                self.plane_list.append(obj)
+            else:
+                controller = PlaneController(row[4:], row[2:4])
+                obj = Plane(self.monitor_size, controller, zoom=self.zoom)
+                self.planes.add(obj)
+                self.plane_list.append(obj)
+            self.obj_dict[obj] = i
 
+    def remove_obj(self, obj):
+        index = self.obj_dict[obj]
+        for key in self.obj_dict:
+            if self.obj_dict[key]>index:
+                self.obj_dict[key] -= 1
 
-
+        self.plane_list.remove(obj)
+        self.obj_dict.pop(obj)
+        self.obj_array = np.delete(self.obj_array, index)
+        print(self.obj_dict)
+        obj.kill()
