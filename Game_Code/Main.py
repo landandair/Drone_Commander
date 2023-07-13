@@ -8,6 +8,7 @@ Main Start to the Simulation
 import pygame as pg
 import Sim_Window
 
+
 def main():
     print('starting')
     pg.init()

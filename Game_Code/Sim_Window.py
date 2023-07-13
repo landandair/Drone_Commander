@@ -4,6 +4,7 @@ from Airplane_Code import Plane
 from Airplane_Control import PlaneController
 import pygame as pg
 import Pygame_Tools as Tool
+from range_vis_calc import update_ranges
 import sys
 import numpy as np
 
@@ -25,6 +26,7 @@ class MainWindow:
         # Turns 0-1 cords into pixel cords
         self.f_real_xy = lambda xy: np.array((xy[0]*self.w + (self.monitor_size[0]-self.w),
                                             xy[1]*self.h + (self.monitor_size[1]-self.h)))
+        self.range = self.f_real_xy([.3, .2])[0] * self.zoom
         # Sprite Groups
         self.background = pg.sprite.Group()
         back = Tool.Background(pg.image.load('Assets/Background1.png'), self.w, self.h)
@@ -43,6 +45,7 @@ class MainWindow:
         self.explosions = pg.sprite.Group()
         # Load values for first level
         self.load_from_file('file')
+        self.obj_array = update_ranges(self.obj_array, self.range)
         # Misc Vars
         self.clock = pg.time.Clock()
         self.pause = False
@@ -55,7 +58,8 @@ class MainWindow:
 
         if not self.pause and self.clock.get_fps():
             dt = 1/self.clock.get_fps()
-            self.planes.update(dt)
+            self.planes.update(dt, self.obj_dict, self.obj_array)
+            self.obj_array = update_ranges(self.obj_array, self.range)
         else:
             dt = 0
 
@@ -97,20 +101,20 @@ class MainWindow:
         self.bullets = pg.sprite.Group()
         self.bombs = pg.sprite.Group()
         self.explosions = pg.sprite.Group()
-        self.obj_array = np.array(((1, 90, 100, 100, 500, 500),
-                                   (1, 90, 200, 100, 500, 500),
-                                   (1, 90, 300, 100, 500, 500),
-                                   (1, 90, 400, 100, 500, 500)),
+        self.obj_array = np.array(((0, 0, 100, 100, 500, 500, 0),
+                                   (2, 0, 200, 100, 500, 500, 0),
+                                   (2, 0, 300, 100, 500, 500, 0),
+                                   (2, 0, 600, 100, 500, 500, 0)),
                                   dtype=float)
         for i, row in enumerate(self.obj_array):
-            if row[0] == 1:
-                controller = PlaneController(row[4:], row[2:4])
-                obj = Plane(self.monitor_size, controller, zoom=self.zoom)
+            if row[0] == 2:
+                controller = PlaneController(np.array(row[4:6]), np.array(row[2:4]))
+                obj = Plane(self.monitor_size, controller, row[6], zoom=self.zoom)
                 self.planes.add(obj)
                 self.plane_list.append(obj)
             else:
-                controller = PlaneController(row[4:], row[2:4])
-                obj = Plane(self.monitor_size, controller, zoom=self.zoom)
+                controller = PlaneController(np.array(row[4:6]), np.array(row[2:4]))
+                obj = Plane(self.monitor_size, controller, row[6], zoom=self.zoom)
                 self.planes.add(obj)
                 self.plane_list.append(obj)
             self.obj_dict[obj] = i
@@ -124,5 +128,4 @@ class MainWindow:
         self.plane_list.remove(obj)
         self.obj_dict.pop(obj)
         self.obj_array = np.delete(self.obj_array, index)
-        print(self.obj_dict)
         obj.kill()

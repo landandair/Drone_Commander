@@ -8,36 +8,42 @@ from Airplane_Control import PlaneController
 
 class Plane(sprite.Sprite):
     """Simulate Flight Characteristics and control system for autopilot"""
-
-    def __init__(self, screen_size, Controller: PlaneController, zoom=1):
+    def __init__(self, screen_size, Controller: PlaneController, theta, zoom=1):
         """Inputs:
         - Start_Pos[Home Point in Meters(x,y)]
         - f_trans[Transfer Function f(x,y) Between meter cords and pixel Cords]
         - Controller Object which Gives Deflection Angles and throttle to be fed into the plane"""
         super().__init__()
         self.dt = 1/60
-        self.has_signal = True
+        self.has_signal = False
         # Disp Params
         self.og_image = pg.image.load('Assets/Plane.png')
         self.og_image = pg.transform.scale(self.og_image, np.array(self.og_image.get_size())*zoom)
-        self.image = self.og_image
+        self.image = pg.transform.scale(self.og_image, (0, 0))
         self.rect = self.image.get_rect()
         self.rect.center = Controller.home
         self.screen_size = screen_size
         # Flight Characteristics(scuffed)
         self.speed = .02 * screen_size[0] * zoom  # pixels/sec
-        self.theta = 0.  # Yaw angle
+        self.theta = theta  # Yaw angle
         self.plane_velocity = np.array((self.speed, 0.))
-        self.pos = Controller.home
+        self.pos = np.array(Controller.home)
         # Controller
         self.controller = Controller
-        Tools.rot(self)
 
-    def update(self, dt):
+    def update(self, dt, obj_dict, obj_arr):
         """Main Update Loop, Runs Every Frame
         - Get Controls
         - Do Physics Calculation
         - Update Position to Image"""
+        index = obj_dict[self]
+        if obj_arr[index, 1] <= 0:
+            self.has_signal = False
+            self.controller.target = obj_arr[index, 4:6]
+        else:
+            self.has_signal = True
+        obj_arr[index, 2:4] = self.pos
+        self.controller.home = obj_arr[index, 4:6]
         self.dt = dt
         self.get_controls()
         self.do_physics()
