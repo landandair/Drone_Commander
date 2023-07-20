@@ -2,7 +2,7 @@ import numba as nb
 import numpy as np
 import timeit
 
-@nb.njit(parallel=True, cache=True)
+@nb.njit(cache=True)
 def update_ranges(arr, rad:int):
     num = len(arr[:, 0])
     for i in nb.prange(num):

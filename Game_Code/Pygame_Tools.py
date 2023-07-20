@@ -51,25 +51,18 @@ class HealthBar(pygame.sprite.Sprite):
     and makes a health bar to those proportions"""
     def __init__(self, pos, ref_sprite, width=200, height=20):
         super().__init__()
-        self.ref = ref_sprite
-        self.swidth = width
-        self.ratio = width/self.ref.health
-        self.width = width
-        self.height = height
-        self.pos = pos
-        self.rect = pygame.rect.Rect(self.pos[0], self.pos[1], self.ref.health*self.ratio, self.height)
+        self.image = pygame.surface.Surface([width, height])
+        self.rect = self.image.get_rect()
         self.rect.center = pos
-        self.srect = self.rect.copy()
+        self.ref = ref_sprite
+        self.ratio = width/self.ref.health
 
-    def update(self, surface):
-        self.basic(surface)
+    def update(self):
+        self.rect.width = self.ref.health*self.ratio
+        self.image = pygame.transform.scale(self.image, self.rect.size)
+        self.image.fill('red')
         if self.ref.health <= 0:
             self.kill()
-
-    def basic(self, surface):
-        self.rect.width = self.ref.health*self.ratio
-        pygame.draw.rect(surface, 'black', self.srect)
-        pygame.draw.rect(surface, 'red', self.rect)
 
 
 class Background(pygame.sprite.Sprite):

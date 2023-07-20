@@ -1,5 +1,7 @@
 """Holds Code that handles the content of the window as well as containing all of the pygame sprite groups needed
 for the sim"""
+import Pygame_Tools as tools
+from Base_Code import Base
 from Airplane_Code import Plane
 from Airplane_Control import PlaneController
 import pygame as pg
@@ -26,7 +28,7 @@ class MainWindow:
         # Turns 0-1 cords into pixel cords
         self.f_real_xy = lambda xy: np.array((xy[0]*self.w + (self.monitor_size[0]-self.w),
                                             xy[1]*self.h + (self.monitor_size[1]-self.h)))
-        self.range = self.f_real_xy([.3, .2])[0] * self.zoom
+        self.range = self.f_real_xy([.2, 0])[0] * self.zoom
         # Sprite Groups
         self.background = pg.sprite.Group()
         back = Tool.Background(pg.image.load('Assets/Background1.png'), self.w, self.h)
@@ -37,12 +39,16 @@ class MainWindow:
         self.obj_dict = {}
         self.obj_array = np.array(())
         self.plane_list = []
+        # Things with health or controls
         self.planes = pg.sprite.Group()
-        self.fort_beac = pg.sprite.Group()
+        self.ground_forces = pg.sprite.Group()
         self.enemies = pg.sprite.Group()
+        # Bullets
         self.bullets = pg.sprite.Group()
         self.bombs = pg.sprite.Group()
         self.explosions = pg.sprite.Group()
+        # Ui
+        self.ui_elements = pg.sprite.Group()
         # Load values for first level
         self.load_from_file('file')
         self.obj_array = update_ranges(self.obj_array, self.range)
@@ -59,13 +65,26 @@ class MainWindow:
         if not self.pause and self.clock.get_fps():
             dt = 1/self.clock.get_fps()
             self.planes.update(dt, self.obj_dict, self.obj_array)
+            self.enemies.update(dt, self.obj_dict, self.obj_array)
             self.obj_array = update_ranges(self.obj_array, self.range)
+            self.ground_forces.update()
+            # Bullets
+            self.bullets.update(dt)
+            self.bombs.update(dt)
+            self.explosions.update(dt)
         else:
             dt = 0
-
+        self.ui_elements.update()
+        # display layer from bottom to top
         self.screen.fill('Black')
         self.background.draw(self.screen)
         self.draw_lines()
+        self.bullets.draw(self.screen)
+        self.enemies.draw(self.screen)
+        self.ground_forces.draw(self.screen)
+        self.ui_elements.draw(self.screen)
+        self.bombs.draw(self.screen)
+        self.explosions.draw(self.screen)
         self.planes.draw(self.screen)
         pg.display.flip()
         self.clock.tick(120)
@@ -102,12 +121,17 @@ class MainWindow:
         self.bombs = pg.sprite.Group()
         self.explosions = pg.sprite.Group()
         self.obj_array = np.array(((0, 0, 100, 100, 500, 500, 0),
-                                   (2, 0, 200, 100, 500, 500, 0),
+                                   (2, 0, 200, 100, 500, 500, np.pi/2),
                                    (2, 0, 300, 100, 500, 500, 0),
                                    (2, 0, 600, 100, 500, 500, 0)),
                                   dtype=float)
         for i, row in enumerate(self.obj_array):
-            if row[0] == 2:
+            if row[0] == 0:
+                obj = Base(np.array(row[2:4]), zoom=self.zoom)
+                health_bar = tools.HealthBar(np.array(row[2:4])+np.array((0, 40*self.zoom)), obj, width=80, height=5)
+                self.ground_forces.add(obj)
+                self.ui_elements.add(health_bar)
+            elif row[0] == 2:
                 controller = PlaneController(np.array(row[4:6]), np.array(row[2:4]))
                 obj = Plane(self.monitor_size, controller, row[6], zoom=self.zoom)
                 self.planes.add(obj)
